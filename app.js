@@ -26,20 +26,36 @@ const initializeDBAndServer = async () => {
 
 initializeDBAndServer();
 
-app.get("/todos/", (request, response) => {
-  const { status = "", priority = "", search_q = "" } = request.query;
-  let filterQuery = null;
-  if (status !== "" && priority === "" && search_q === "") {
-    filterQuery = `SELECT * FROM todo WHERE status = '${status}'`;
-  } else if (status === "" && priority !== "" && search_q === "") {
-    filterQuery = `SELECT * FROM todo WHERE priority = '${priority}'`;
-  } else if (status !== "" && priority !== "" && search_q === "") {
-    filterQuery = `SELECT * FROM todo WHERE status='${status}' and priority = '${priority}'`;
-  } else if (status === "" && priority === "" && search_q !== "") {
-    filterQuery = `SELECT * FROM todo WHERE todo like '%${status}%'`;
-  }
-  //   const filterQuery = `select * from todo where status = '${status}' and priority = '${priority}' and todo like '%${search_q}%'`;
+const hasPriorityProperty = (requestQuery) => {
+  return requestQuery.priority !== undefined;
+};
+const hasStatusPriority = (requestQuery) => {
+  return requestQuery.status !== undefined;
+};
+const hasPriorityAndStatusProperties = (requestQuery) => {
+  return (
+    requestQuery.status !== undefined && requestQuery.priority !== undefined
+  );
+};
 
+app.get("/todos/", (request, response) => {
+  let data = null;
+  let filterQuery = "";
+  const { search_q = "", priority, status } = request.query;
+  switch (true) {
+    case hasPriorityAndStatusProperties(request.query):
+      filterQuery = `SELECT * FROM TODO WHERE STATUS = '${status}' AND PRIORITY = '${priority}'`;
+      break;
+    case hasPriorityProperty(request.query):
+      filterQuery = `SELECT * FROM TODO WHERE PRIORITY = '${priority}`;
+      break;
+    case hasStatusPriority(request.query):
+      filterQuery = `SELECT * FROM TODO WHERE STATUS = '${status}'`;
+      break;
+    default:
+      filterQuery = `select * from todo where todo like '%${search_q}%'`;
+      break;
+  }
   const todoResult = db.all(filterQuery);
   response.send(todoResult);
 });
